@@ -14,7 +14,7 @@
  * the License.
  */
 
-package com.google.android.glass.sample.waveform;
+package com.google.android.glass.hud;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,6 +22,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
@@ -50,15 +51,16 @@ public class WaveformActivity extends Activity {
     private TextView mMainTextView;
     private VideoView mVideoView;
     private View mBackground;
-    //private ImageView mImageView;
     private ServerSocket server;
 
     private ConnectionThread mConnectionThread;
 
+	// Creates all the different text views
+	// Starts the
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.layout_waveform);
+        setContentView(R.layout.layout_hud);
 
         mBottomRightView = (TextView) findViewById(R.id.bottom_right_text_view);
         mBottomLeftView = (TextView) findViewById(R.id.bottom_left_text_view);
@@ -66,7 +68,6 @@ public class WaveformActivity extends Activity {
         mVideoView = (VideoView) findViewById(R.id.video_stream_view);
         mBackground = (View) findViewById(R.id.background_view);
         
-        //mImageView = (ImageView) findViewById(R.id.image_overlay);
         mBottomRightView.setBackgroundColor(Color.TRANSPARENT);
         mBottomLeftView.setBackgroundColor(Color.TRANSPARENT);
         mMainTextView.setBackgroundColor(Color.TRANSPARENT);
@@ -82,6 +83,8 @@ public class WaveformActivity extends Activity {
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "Driver Station");
         wl.acquire();
+		
+		// Failed attempt to get a video stream to the display
         /*
         mVideoView.setVideoPath("rtsp://192.168.1.102:554");
         MediaController mc = new MediaController(this);
@@ -118,11 +121,8 @@ public class WaveformActivity extends Activity {
         finish();
     }
 
-    /**
-     * A background thread that receives audio from the microphone and sends it to the waveform
-     * visualizing view.
-     */
-    
+
+	// Second thread to communicate directly with the driver station
     private class ConnectionThread extends Thread {
     	
     	private boolean shouldContinue = true;
@@ -142,7 +142,7 @@ public class WaveformActivity extends Activity {
     		while (client == null)
     		{
 	    		try {
-	    			//Create Server (Tcp: 38300) Along with timeout (In ms)
+	    			//Create Server (Tcp: 38300) Along with timeout (in ms)
 	    			server = new ServerSocket(38300);
 	    			server.setSoTimeout(3000000);
 	    			
@@ -203,6 +203,7 @@ public class WaveformActivity extends Activity {
 					{
 						input = in.readLine();
 						System.out.println("Client -- " + input);
+						
 						interpretString(input);
 						
 						timeSinceLastMessage = 0l;
@@ -228,6 +229,9 @@ public class WaveformActivity extends Activity {
     	private void interpretString(String s)
     	{    		
     		try {
+				// Data was sent in the format
+				//		[2 digit numeric header][Data]
+			
     			boolean resetBackground = true;
     			int header = Integer.parseInt(s.substring(0,2));
     			String data = s.substring(2);
@@ -246,6 +250,7 @@ public class WaveformActivity extends Activity {
 	    					isBackgroundDefault = false;
 	    					resetBackground = false;
 	    				}
+						
 	    				data.replace("Ready", "");
 	    				setViewText(data, mMainTextView);
 	    				break;
@@ -284,17 +289,10 @@ public class WaveformActivity extends Activity {
     	}
     	
 
-    	
-        /**
-         * Gets a value indicating whether the thread should continue running.
-         *
-         * @return true if the thread should continue running or false if it should stop
-         */
-        private synchronized boolean shouldContinue() {
+    	private synchronized boolean shouldContinue() {
             return shouldContinue;
         }
 
-        /** Notifies the thread that it should stop running at the next opportunity. */
         public synchronized void stopRunning() {
             shouldContinue = false;
         }
